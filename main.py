@@ -74,6 +74,7 @@ def size_binline(init_info):
     size_line_data = 8 + (channelsA + math.ceil(channelsD/16))*2
     return size_line_data
 
+
 def grouper(iterable, n):
     args = [iter(iterable)] * n
     return zip(*args)
