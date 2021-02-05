@@ -11,12 +11,12 @@ class InfoOs:
         #self.AllChannels = LineChannels[0]
         self.channelsA = int(LineChannels[1][:-1])
         self.channelsD = int(LineChannels[2][:-1])
-        self.size_line_data = 8 + (self.channelsA + math.ceil(self.channelsD/16))*2
+        self.size_line_data = (self.channelsA + math.ceil(self.channelsD/16))*2
         self.coffTransforList = []
         self.formats = []
         self.formats.append(np.uint32)
         self.formats.append(np.uint32)
-        for i in range(self.size_line_data - 8):
+        for i in range(self.size_line_data):
             self.formats.append(np.int16)
         self.name = []
         self.name.append('Nomber')
