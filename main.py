@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import pandas as pd
+from scipy.fft import rfft, rfftfreq
 
 
 class InfoOs:
@@ -30,12 +31,13 @@ class InfoOs:
             self.name.append('D'+str(i+1))
             #print(self.name)
         self.coffTransfor = dict(zip(self.name[2:], self.coffTransforList))
-
+        self.simpleRate = int(init_info[self.channelsA+self.channelsD+4].split(',')[0])
 
 def get_info_from_file(filename):
     with open(filename, "r") as f:
         info =f.read()
     return info
+
 
 
 if __name__ == '__main__':
@@ -46,8 +48,12 @@ if __name__ == '__main__':
     data = np.fromfile("24e61716a082f03660813bc0fd6b3f56458cac13.dat", dtype=dt)
     df = pd.DataFrame(data)
     df = pd.DataFrame(data, columns=data.dtype.names)
+
+    #Задаем интервал на котором происходит преобразования Фурье
+    df=df.loc[5000:10000]
     print(df)
-    name_graf_to_print = ['V1','V2','V3']#'Ix1','Ix2','Ix3'
+
+    name_graf_to_print = ['Ix2']#'Ix1','Ix2','Ix3'
     timePoint = df['time'].tolist()
     graf_values=[[] for i in range(len(name_graf_to_print))]
     for i in range(len(name_graf_to_print)):
@@ -57,4 +63,17 @@ if __name__ == '__main__':
         plt.plot(timePoint, graf_values[i], label=name_graf_to_print[i])
     plt.legend(loc=2)
     plt.show()
-    # plt.xlim (0, 40000)
+
+    #Блок Фурье
+    myarray = np.asarray((graf_values[0]))
+    normalized_tone = np.int16((myarray / myarray.max()) * 32767)
+    # число точек в normalized_tone
+    N = len(myarray)
+    yf = rfft(normalized_tone)
+    print(len(yf))
+    xf = rfftfreq(N, 1 / constLineSize.simpleRate)
+    plt.plot(xf, np.abs(yf))
+    plt.show()
+
+    #plt.xlim (0, 5000)
+    #print(df['time'][:5])
