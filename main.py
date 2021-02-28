@@ -72,7 +72,8 @@ class AnalyzerRPA:
 
         # Создание DataFrame с реальными значениями.
         self.true_df = df1 =self.data_frame.dropna()
-        cols_names_to_print = self.cols_names[2:math.ceil(self.channels_D / 16)]
+        cols_names_to_print = self.cols_names[2:-math.ceil(self.channels_D / 16)]
+        print(cols_names_to_print)
         graf_values=[[] for i in range(len(cols_names_to_print))]
         for i in range(len(cols_names_to_print)):
             graf_values[i] =  self.true_df[cols_names_to_print[i]].tolist()
@@ -108,27 +109,32 @@ def fourier_transform(df, name_column):
 
 
 def argand(a):
-        for x in range(len(a)):
-            plt.plot([0,a[x].real],[0,a[x].imag],'ro',label='python')
-        limit=np.max(np.ceil(np.absolute(a))) # установка пределов для осей
-        plt.minorticks_on()
-        #  Определяем внешний вид линий основной сетки:
-        plt.grid(which='major',
-                color = 'k',
-                linewidth = 1)
-        #  Определяем внешний вид линий вспомогательной сетки:
-        plt.grid(which='minor',
-                color = 'k',
-                linestyle = ':')
-        # plt.grid(axis = 'both')
-        # plt.grid(which='minor', color = 'k', linewidth = 2)
-        plt.axhline(y=0, color='k')
-        plt.axvline(x=0, color='k')
-        plt.xlim((-limit,limit))
-        plt.ylim((-limit,limit))
-        plt.ylabel('Imaginary')
-        plt.xlabel('Real')
-        plt.show()
+    xi=[]
+    yi=[]
+    for x in range(len(a)):
+        xi.append(a[x].real)
+        yi.append(a[x].imag)
+        #plt.plot([0,a[x].real],[0,a[x].imag],'ro',label='python')#раскоментить если нужен вектор с центра
+    plt.plot(xi,yi,'ro-',label='python')
+    limit=np.max(np.ceil(np.absolute(a))) # установка пределов для осей
+    plt.minorticks_on()
+    #  Определяем внешний вид линий основной сетки:
+    plt.grid(which='major',
+            color = 'k',
+            linewidth = 1)
+    #  Определяем внешний вид линий вспомогательной сетки:
+    plt.grid(which='minor',
+            color = 'k',
+            linestyle = ':')
+    # plt.grid(axis = 'both')
+    # plt.grid(which='minor', color = 'k', linewidth = 2)
+    plt.axhline(y=0, color='k')
+    plt.axvline(x=0, color='k')
+    plt.xlim((-limit,limit))
+    plt.ylim((-limit,limit))
+    plt.ylabel('Imaginary')
+    plt.xlabel('Real')
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -138,10 +144,9 @@ if __name__ == '__main__':
     columns = ['V','I', 'R']
     cd = pd.DataFrame(columns=columns)
     #print(cd)
-    print(max(df['V1']))
+    #print(max(df['Ix1']))
 
-
-    cols_names_to_print = ['V1']
+    cols_names_to_print = ['Ix1']
     print_graf(cols_names_to_print,df)
 
     #fourier_transform(df,'V1')
@@ -151,8 +156,8 @@ if __name__ == '__main__':
         df = analyzer.true_df.loc[i:analyzer.sample-1+i]
         a={'V':fourier_transform(df,'V1'),'I':fourier_transform(df,'Ix1')}
         cd=cd.append(a, ignore_index = True)
-    cd['R']= cd['V'] / cd['I']
-    print(cd)
+    cd['R']= cd['V']  / cd['I']
+    #print(cd)
 
 
     argand(cd['R'])
