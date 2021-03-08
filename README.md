@@ -1,2 +1,2 @@
 # OscilloscopeBinaryDataVisualizer
-Visualizer of the oscilloscope binary data from the .dat and .csg files.
+Visualizer of the oscilloscope data from the .dat and .csg files.
