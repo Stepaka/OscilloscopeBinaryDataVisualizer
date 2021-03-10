@@ -4,17 +4,16 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.fft import rfft, rfftfreq
-from shapely.geometry import Polygon
-from shapely.geometry import Point
-from shapely.geometry import MultiPolygon
-from shapely.geometry import MultiLineString
-from shapely.geometry import LineString
+from shapely.geometry import Polygon, Point, MultiPolygon, MultiLineString, LineString
+
 
 FILE_DAT_NAME = "SA-2.DAT" #"24e61716a082f03660813bc0fd6b3f56458cac13.dat"
 FILE_CFG_NAME = "SA-2.CFG" #24e61716a082f03660813bc0fd6b3f56458cac13.cfg"
 
+# Углы для ступеней защиты
 POLYGON_F1 = 85
 POLYGON_F2 = 22
+POLYGON_F2_2 = 30
 POLYGON_F3 = 120
 
 class AnalyzerRPA:
@@ -110,7 +109,7 @@ class AnalyzerRPA:
                 if self.type_value_dat == 'P':
                     graf_values[i][el] = float(item) * self.transform_coef_dictA[cols_names_to_print[i]]# * self.transform_coef_dictS[cols_names_to_print[i]] / self.transform_coef_dictP[cols_names_to_print[i]]
                 elif self.type_value_dat == 'S':
-                    graf_values[i][el] = float(item) * self.transform_coef_dictA[cols_names_to_print[i]] * self.transform_coef_dictP[cols_names_to_print[i]] / self.transform_coef_dictS[cols_names_to_print[i]]
+                    graf_values[i][el] = float(item) * self.transform_coef_dictA[cols_names_to_print[i]]# * self.transform_coef_dictP[cols_names_to_print[i]] / self.transform_coef_dictS[cols_names_to_print[i]]
             self.true_df[cols_names_to_print[i]]=np.array(graf_values[i])
 
         # Число для построения полоного графика годографа
@@ -127,28 +126,31 @@ class AnalyzerRPA:
         plt.show()
 
     # Фурье.
-    def fourier_transform(self,df, name_column):
+    def fourier_transform(self,df, name_column, show = False):
         myarray = np.asarray((df[name_column]))
         N = len(myarray)
         yf = rfft(myarray)
         xf = rfftfreq(N, 1 / analyzer.simple_rate)
-        #plt.plot(xf, np.abs(yf))
-        #plt.show()
+        if (show == True):
+            plt.plot(xf, np.abs(yf))
+            plt.show()
         return yf[1]
 
-    # Годограф
+    # Годограф (диаграмма Аргана)
     def argand(self,poly = 'NULL'):
         a = self.calculate_resistance()
         xi=[]
         yi=[]
+        color = 'r'
         for x in range(len(a)):
             xi.append(a[x].real)
             yi.append(a[x].imag)
             p1 = Point(a[x].real, a[x].imag)
-            # if p1.within(poly):# дает 1 когда точка попадает в характеристику
+            #if p1.within(poly):# дает 1 когда точка попадает в характеристику
             #     print("1")
+               # break
             #plt.plot([0,a[x].real],[0,a[x].imag],'ro',label='python')#раскоментить если нужен вектор с центра
-        plt.plot(xi,yi,'ro-',label='python')
+        plt.plot(xi,yi,'ro-',label='python', color = color)
         limit=np.max(np.ceil(np.absolute(a))) # установка пределов для осей
         plt.minorticks_on()
         #  Определяем внешний вид линий основной сетки:
@@ -190,15 +192,38 @@ class AnalyzerRPA:
         return intersection_of_lines
 
     # Создает ступень характерисики
-    def create_polygon(self,f_l, f_4, R , X):
+    def create_step(self,f_l, f_4, R , X, firststep='NULL', reverse='NULL', show = 'NULL'): #(fл, f4, R, X, первая ступень,  обратное напрвление, показать график)
         coords = []
-        coords.append([0,0])
+
+        if (reverse == True):
+            R=-R
+            X=-X
+            coords.append(self.calculate_coord_point( [0,0], np.deg2rad(-POLYGON_F2_2), [R,0], np.deg2rad(POLYGON_F1) ))
+        else:
+            coords.append(self.calculate_coord_point( [0,0], np.deg2rad(-POLYGON_F2), [R,0], np.deg2rad(POLYGON_F1) ))
+        if (firststep == True):
+            coords.append(self.calculate_coord_point( [X * np.tan(np.deg2rad(5)),X], np.deg2rad(-f_4), [R,0], np.deg2rad(POLYGON_F1) ))
+            coords.append( [X * np.tan(np.deg2rad(90-f_l)), X] )
+        else:
+            coords.append(self.calculate_coord_point( self.calculate_coord_point( [0,0], np.deg2rad(POLYGON_F3), [0,X], np.deg2rad(0) ) , np.deg2rad(0), [R,0], np.deg2rad(POLYGON_F1) ))
         coords.append(self.calculate_coord_point( [0,0], np.deg2rad(POLYGON_F3), [0,X], np.deg2rad(0) ))
-        coords.append( [X * np.tan(np.deg2rad(90-f_l)), X] )
-        coords.append(self.calculate_coord_point( [X * np.tan(np.deg2rad(5)),X], np.deg2rad(-f_4), [R,0], np.deg2rad(POLYGON_F1) ))
-        coords.append(self.calculate_coord_point( [0,0], np.deg2rad(-POLYGON_F2), [R,0], np.deg2rad(POLYGON_F1) ))
+        coords.append([0,0])
+
         poly = Polygon(coords)
         self.plot_polys([poly])
+        if (show == True):
+            plt.gca().set_aspect('equal', adjustable='box')
+            plt.xlim(-20, 20)
+            plt.ylim(-20, 20)
+            plt.axhline(y=0, color='k')
+            plt.axvline(x=0, color='k')
+            # Для показа вспомогательной сетки:
+            plt.minorticks_on()
+            #  Определяем внешний вид линий основной сетки:
+            plt.grid(which='major', color = 'k', linewidth = 1)
+            #  Определяем внешний вид линий вспомогательной сетки:
+            plt.grid(which='minor', color = 'k', linestyle = ':')
+            plt.show()
         return poly
 
     # Возвращает столбец с сопротивлением
@@ -208,10 +233,11 @@ class AnalyzerRPA:
         for i in range(self.full_int_hodograph):#self.full_int_hodograph
             # Задаем интервал, на котором происходят преобразования Фурье.
             df = analyzer.true_df.loc[i:analyzer.sample-1+i]
-            a={'V':self.fourier_transform(df,'uL1')-self.fourier_transform(df,'uL2'),'I':self.fourier_transform(df,'iL1')*2}
+            a={'V':self.fourier_transform(df,'uL1')-self.fourier_transform(df,'uL2'),'I':self.fourier_transform(df,'iL1')-self.fourier_transform(df,'iL2')}
             cd=cd.append(a, ignore_index = True)
         cd['R']= cd['V']  / cd['I']
         return cd['R']
+
 
 
 
@@ -221,9 +247,11 @@ if __name__ == '__main__':
     #print(max(df['uL1']))
 
     cols_names_to_print = ['uL1']
-    analyzer.print_graf(cols_names_to_print,df)
+    #analyzer.print_graf(cols_names_to_print,df)
+    #analyzer.fourier_transform(df,'uL1',show = True)
 
-    #analyzer.fourier_transform(df,'V1')
+    analyzer.create_step(85, 20, 2.4, 4.4, firststep = True)
+    analyzer.create_step(85, 20, 5.6, 10.4)
+    analyzer.create_step(85, 20, 8.4, 9.6, reverse = True, show = True)
 
-    analyzer.argand(analyzer.create_polygon(85, 20, 2.4, 4.4))# (fл, f4, R, X)
-
+    #analyzer.argand(analyzer.create_step(85, 20, 2.4, 4.4, firststep = True))# (fл, f4, R, X, ступень, напрвление, показать график)
